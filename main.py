@@ -3,7 +3,13 @@ from pygame import locals
 import serial
 import numpy as np
 import json
+import ast
 import matplotlib.pyplot as plt
+from tkinter import Tk
+from tkinter.filedialog import askopenfilename
+
+tk_root = Tk()
+tk_root.withdraw()
 
 s = serial.Serial("COM3", 115200)
 
@@ -52,8 +58,8 @@ def database_saver():
     if len(last_ser) > 0:
         if int(last_ser[4]) >= 1:
             database.append(str(round(float(last_ser[5])*100, 2)))
-            x.append(len(x)) #here
-            y.append(round(float(last_ser[5])*100, 2)) #here
+            x.append(len(x)) # here
+            y.append(round(float(last_ser[5])*100, 2)) # here
             with open("database.txt", "w") as f:
                 f.write(str(database))
 
@@ -97,6 +103,12 @@ def show_serial():
     else:
         text(f"Ingen verdier", 30, (255, 255, 255), 740, 50)
 
+def open_dataset():
+
+    filename = askopenfilename(filetype=(("Dataset", ".txt"), ("All Files", "*.*")))
+    with open(filename, "r") as f:
+        global database
+        database = ast.literal_eval(f.read())
 
 FPSTicker = pygame.time.Clock()
 running = True
@@ -114,6 +126,8 @@ while running:
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
                 show_regression()
+            if event.key == pygame.K_o:
+                open_dataset()
 
     show_light()
     show_serial()
