@@ -21,8 +21,11 @@ screenwidth = 1100; screenheight = 300
 screen = pygame.display.set_mode([screenwidth, screenheight])
 pygame.display.set_caption("Kolorimeter controller")
 
-x = [] #here
-y = [] #here
+x               = [] #here
+y               = [] #here
+
+stigningstall = 0
+konstantledd  = 0
 
 def add_regression_point(x_, y_): #here
 
@@ -38,6 +41,7 @@ def text(value, size, color, x, y):
     rect.x = x
     rect.y = y
     screen.blit(TEXT, rect)
+
 
 def show_light():
     if len(last_ser) > 0:
@@ -58,21 +62,30 @@ def database_saver():
     if len(last_ser) > 0:
         if int(last_ser[4]) >= 1:
             database.append(str(round(float(last_ser[5])*100, 2)))
-            x.append(len(x)) # here
+            x.append(float(input("Konsentrasjon: "))) # here
             y.append(round(float(last_ser[5])*100, 2)) # here
             with open("database.txt", "w") as f:
-                f.write(str(database))
+                f.write(str([database, x]))
+
+
+def regression():
+
+    if len(x) > 0 or len(y) > 0:
+        m, b = np.polyfit(np.array(y), np.array(x), 1)
+        return m, b
+    else:
+        return 0, 0
+
 
 def show_regression(): #here
 
     plt.scatter(x[:-1], y[:-1])
     plt.scatter(x[len(x)-1:], y[len(y)-1:], edgecolors="g")
-    m, b = np.polyfit(np.array(x), np.array(y), 1)
-    print(f"Stigningstall: {round(m, 2)}, Konstantledd: {round(b, 2)}")
-    plt.plot(np.array(x), m*np.array(x) + b)
-    
+    print(f"Stigningstall: {round(stigningstall, 2)}, Konstantledd: {round(konstantledd, 2)}")
+    plt.plot(np.array(x), stigningstall*np.array(x) + konstantledd)
     plt.plot(x, y, 'r')
     plt.show()
+
 
 def show_database():
 
@@ -99,22 +112,37 @@ def show_serial():
 
     if len(last_ser) > 0:
         value = last_ser[0]
-        text(f"verdi -> {value}", 30, (255, 255, 255), 740, 50)
+        value_ukjent = stigningstall*float(value) + konstantledd
+        text(f"verdi  -> {value}", 30, (255, 255, 255), 740, 35)
+        text(f"Ukjent -> {round(value_ukjent, 3)}", 30, (255, 255, 255), 740, 65)
     else:
         text(f"Ingen verdier", 30, (255, 255, 255), 740, 50)
+
 
 def open_dataset():
 
     filename = askopenfilename(filetype=(("Dataset", ".txt"), ("All Files", "*.*")))
     with open(filename, "r") as f:
         global database
-        database = ast.literal_eval(f.read())
+        data = ast.literal_eval(f.read())
+        database = data[0]
+        global x
+        global y
+
+        for x_ in data[1]:
+            x.append(float(x_))
+
+        for y_ in data[0]:
+            y.append(float(y_))
 
 FPSTicker = pygame.time.Clock()
 running = True
 while running:
 
     screen.fill((0,0,0))
+
+    stigningstall, konstantledd = regression()
+    print(stigningstall, konstantledd)
 
     last_ser = get_serial()
     last_ser[0] = str(round(float(last_ser[0])*100, 2))
